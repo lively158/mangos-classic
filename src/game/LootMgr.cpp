@@ -880,35 +880,21 @@ bool Loot::FillLoot(uint32 loot_id, LootStore const& store, Player* lootOwner, b
     return true;
 }
 
-// Get loot status for a specified player
-uint32 Loot::GetLootStatusFor(Player const* player) const
+// Is there is any loot available for provided player
+bool Loot::IsLootedFor(Player const* player) const
 {
-    uint32 status = 0;
-
     if (m_gold != 0)
-        status |= LOOT_STATUS_CONTAIN_GOLD;
+        return false;
 
     ObjectGuid const& playerGuid = player->GetObjectGuid();
     for (LootItemList::const_iterator lootItemItr = m_lootItems.begin(); lootItemItr != m_lootItems.end(); ++lootItemItr)
     {
         LootItem* lootItem = *lootItemItr;
-
-        LootSlotType slotType = lootItem->GetSlotTypeForSharedLoot(player, this);
-        if (slotType == MAX_LOOT_SLOT_TYPE)
-            continue;
-
-        status |= LOOT_STATUS_NOT_FULLY_LOOTED;
-
-        if (lootItem->freeForAll)
-            status |= LOOT_STATUS_CONTAIN_FFA;
+        if (lootItem->GetSlotTypeForSharedLoot(player, this) != MAX_LOOT_SLOT_TYPE)
+            return false;
     }
-    return status;
-}
 
-// Is there is any loot available for provided player
-bool Loot::IsLootedFor(Player const* player) const
-{
-    return (GetLootStatusFor(player) == 0);
+    return true;
 }
 
 bool Loot::IsLootedForAll() const
@@ -934,15 +920,13 @@ bool Loot::CanLoot(Player const* player)
     if (itr == m_ownerSet.end())
         return false;
 
-    uint32 lootStatus = GetLootStatusFor(player);
+    // all player that have right too loot have right to loot dropped money
+    if (m_gold)
+        return true;
 
     // is already looted?
-    if (!lootStatus)
+    if (IsLootedFor(player))
         return false;
-
-    // all player that have right too loot have right to loot dropped money
-    if (lootStatus & LOOT_STATUS_CONTAIN_GOLD || lootStatus & LOOT_STATUS_CONTAIN_FFA)
-        return true;
 
     if (m_lootMethod == NOT_GROUP_TYPE_LOOT || m_lootMethod == FREE_FOR_ALL)
         return true;
