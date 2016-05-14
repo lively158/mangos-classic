@@ -344,7 +344,7 @@ bool Unit::UpdateMeleeAttackingState()
     if (!victim || IsNonMeleeSpellCasted(false))
         return false;
 
-    if (!isAttackReady(BASE_ATTACK) && (haveOffhandWeapon() && !(isAttackReady(OFF_ATTACK))))
+    if (!isAttackReady(BASE_ATTACK) && !(isAttackReady(OFF_ATTACK) && haveOffhandWeapon()))
         return false;
 
     uint8 swingError = 0;
@@ -396,7 +396,7 @@ bool Unit::UpdateMeleeAttackingState()
         player->SwingErrorMsg(swingError);
     }
 
-    return swingError;
+    return swingError == 0;
 }
 
 bool Unit::haveOffhandWeapon() const
@@ -2230,7 +2230,7 @@ MeleeHitOutcome Unit::RollMeleeOutcomeAgainst(const Unit* pVictim, WeaponAttackT
 
     if ((GetTypeId() != TYPEID_PLAYER && !((Creature*)this)->IsPet()) &&
             !(((Creature*)this)->GetCreatureInfo()->ExtraFlags & CREATURE_EXTRA_FLAG_NO_CRUSH) &&
-            !SpellCasted /*Only autoattack can be crushing blow*/)
+            !SpellCasted /*Only autoattack can be crashing blow*/)
     {
         // mobs can score crushing blows if they're 3 or more levels above victim
         // or when their weapon skill is 15 or more above victim's defense skill
@@ -4865,31 +4865,20 @@ bool Unit::Attack(Unit* victim, bool meleeAttack)
     if (!isAlive() || !victim->IsInWorld() || !victim->isAlive())
         return false;
 
+    // player cannot attack in mount state
+    if (GetTypeId() == TYPEID_PLAYER && IsMounted())
+        return false;
+
     // nobody can attack GM in GM-mode
     if (victim->GetTypeId() == TYPEID_PLAYER)
     {
         if (((Player*)victim)->isGameMaster())
             return false;
     }
-
-    if (GetTypeId() == TYPEID_PLAYER)
+    else
     {
-        // player cannot attack in mount state
-        if (IsMounted())
+        if (((Creature*)victim)->IsInEvadeMode())
             return false;
-    }
-    else 
-    {
-        // stop creature from unsheathing their weapon
-        // also make sure to keep resetting any melee timers to avoid insta hits between mob spellcasts
-        if (IsNonMeleeSpellCasted(false))
-        {
-            SetSheath(SHEATH_STATE_UNARMED);
-            resetAttackTimer(BASE_ATTACK);
-            resetAttackTimer(OFF_ATTACK);
-            resetAttackTimer(RANGED_ATTACK);
-            return false;
-        }
     }
 
     // remove SPELL_AURA_MOD_UNATTACKABLE at attack (in case non-interruptible spells stun aura applied also that not let attack)
@@ -4902,17 +4891,15 @@ bool Unit::Attack(Unit* victim, bool meleeAttack)
         if (m_attacking == victim)
         {
             // switch to melee attack from ranged/magic
-            if (meleeAttack)
+            if (meleeAttack && !hasUnitState(UNIT_STAT_MELEE_ATTACKING))
             {
-                if (!hasUnitState(UNIT_STAT_MELEE_ATTACKING))
-                {
-                    addUnitState(UNIT_STAT_MELEE_ATTACKING);
-                    SendMeleeAttackStart(victim);
-                }
+                addUnitState(UNIT_STAT_MELEE_ATTACKING);
+                SendMeleeAttackStart(victim);
                 return true;
             }
             return false;
         }
+
         // remove old target data
         AttackStop(true);
     }
@@ -4974,16 +4961,15 @@ bool Unit::AttackStop(bool targetSwitch /*=false*/)
     m_attacking->_removeAttacker(this);
     m_attacking = nullptr;
 
-    // Clear our target only of targetSwitch == true
-    if (targetSwitch)
-        SetTargetGuid(ObjectGuid());
+    // Clear our target
+    SetTargetGuid(ObjectGuid());
 
     clearUnitState(UNIT_STAT_MELEE_ATTACKING);
 
     InterruptSpell(CURRENT_MELEE_SPELL);
 
     // reset only at real combat stop
-    if ((!targetSwitch && GetTypeId() == TYPEID_UNIT) && !IsNonMeleeSpellCasted(false))
+    if (!targetSwitch && GetTypeId() == TYPEID_UNIT)
     {
         ((Creature*)this)->SetNoCallAssistance(false);
 
