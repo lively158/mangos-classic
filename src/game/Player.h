@@ -2068,6 +2068,7 @@ class MANGOS_DLL_SPEC Player : public Unit
             lastCheckMapId = 0;
             nextCheck = time(nullptr) + nextCheckInSec;
             initAntiCheat = false;
+            reportAmount = 0;
         }
 
     protected:
@@ -2246,6 +2247,7 @@ class MANGOS_DLL_SPEC Player : public Unit
         uint32 lastCheckMapId;
         time_t nextCheck;
         time_t lastReport;
+        uint32 reportAmount;
         bool   initAntiCheat;
         /////////// TEMP CHEATING SOLUTION ///////////
 

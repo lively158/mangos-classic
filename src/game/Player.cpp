@@ -537,6 +537,7 @@ Player::Player(WorldSession* session): Unit(), m_mover(this), m_camera(this), m_
     nextCheck = 0;
     lastReport = 0;
     initAntiCheat = false;
+    reportAmount = 0;
 }
 
 Player::~Player()
@@ -1325,17 +1326,23 @@ void Player::Update(uint32 update_diff, uint32 p_time)
             {
                 if (lastReport < time(nullptr) - 10)
                 {
-                    lastReport = time(nullptr);
-
-                    HashMapHolder<Player>::MapType& m = sObjectAccessor.GetPlayers();
-                    for (HashMapHolder<Player>::MapType::const_iterator itr = m.begin(); itr != m.end(); ++itr)
+                    if (++reportAmount >= 2)
                     {
-                        Player* player = itr->second;
-                        if (player->isGameMaster())
+                        reportAmount = 0;
+                        lastReport = time(nullptr);
+
+                        HashMapHolder<Player>::MapType& m = sObjectAccessor.GetPlayers();
+                        for (HashMapHolder<Player>::MapType::const_iterator itr = m.begin(); itr != m.end(); ++itr)
                         {
-                            char msgbuffer[1000];
-                            sprintf(msgbuffer, "[ANTI-CHEAT] Player %s on AccountId %u is a possible cheater!", GetName(), GetSession()->GetAccountId());
-                            sWorld.SendServerMessage(SERVER_MSG_CUSTOM, msgbuffer, player);
+                            Player* player = itr->second;
+                            if (player->isGameMaster())
+                            {
+                                char msgbuffer[1000];
+                                sprintf(msgbuffer, "[ANTI-CHEAT] Player %s on AccountId %u is a possible cheater!", GetName(), GetSession()->GetAccountId());
+
+                                sLog.outChar(msgbuffer);
+                                sWorld.SendServerMessage(SERVER_MSG_CUSTOM, msgbuffer, player);
+                            }
                         }
                     }
                 }
