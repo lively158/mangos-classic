@@ -2355,7 +2355,7 @@ bool ChatHandler::HandlePInfoCommand(char* args)
             Field* fields = result->Fetch();
             std::string noteTime = fields[0].GetString();
             std::string accountNote = fields[1].GetString();
-            PSendSysMessage("[%s] %s", noteTime, accountNote);
+            PSendSysMessage("[%s] %s", noteTime.c_str(), accountNote.c_str());
         }
         while (result->NextRow());
 
