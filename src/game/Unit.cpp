@@ -6597,9 +6597,9 @@ bool Unit::isVisibleForOrDetect(Unit const* u, WorldObject const* viewPoint, boo
     // set max ditance
     float visibleDistance = (u->GetTypeId() == TYPEID_PLAYER) ? MAX_PLAYER_STEALTH_DETECT_RANGE : ((Creature const*)u)->GetAttackDistance(this);
 
-    // Always invisible from back (when stealth detection is on), also filter max distance cases
-    bool isInFront = viewPoint->isInFrontInMap(this, visibleDistance);
-    if (!isInFront)
+    // Always invisible from back
+    bool isInBack = viewPoint->isInBack(this, MAX_PLAYER_STEALTH_DETECT_RANGE);
+    if (isInBack)
         return false;
 
     // Calculation if target is in front

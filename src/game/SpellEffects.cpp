@@ -2394,13 +2394,13 @@ void Spell::EffectDistract(SpellEffectIndex /*eff_idx*/)
     if (unitTarget->hasUnitState(UNIT_STAT_CAN_NOT_REACT))
         return;
 
+    if (unitTarget->GetTypeId() == TYPEID_UNIT)
+        unitTarget->GetMotionMaster()->MoveDistract(damage * IN_MILLISECONDS);
+
     float angle = unitTarget->GetAngle(m_targets.m_destX, m_targets.m_destY);
     unitTarget->SetFacingTo(angle);
     unitTarget->clearUnitState(UNIT_STAT_MOVING);
     unitTarget->SetOrientation(angle);
-
-    if (unitTarget->GetTypeId() == TYPEID_UNIT)
-        unitTarget->GetMotionMaster()->MoveDistract(damage * IN_MILLISECONDS);
 }
 
 void Spell::EffectPickPocket(SpellEffectIndex /*eff_idx*/)
