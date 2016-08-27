@@ -882,10 +882,10 @@ void Object::ForceValuesUpdateAtIndex(uint32 index)
 }
 
 WorldObject::WorldObject() :
+{
     m_currMap(nullptr),
     m_mapId(0), m_InstanceId(0),
     m_isActiveObject(false)
-{
 }
 
 void WorldObject::CleanupsBeforeDelete()
